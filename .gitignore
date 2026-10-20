@@ -1,0 +1,11 @@
+.env
+.env.local
+*.log
+.idea/
+.vscode/
+vendor/
+node_modules/
+.tools/
+Thumbs.db
+Desktop.ini
+.DS_Store

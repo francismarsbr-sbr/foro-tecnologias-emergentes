@@ -61,6 +61,7 @@ $router->get('/logout', [AuthController::class, 'logout']);
 $router->get('/logistica', [LogisticaController::class, 'index']);
 $router->get('/logistica/lista', [LogisticaController::class, 'lista']);
 $router->post('/logistica/asistencia', [LogisticaController::class, 'actualizarAsistencia']);
+$router->post('/logistica/eliminar', [LogisticaController::class, 'eliminar']);
 
 $router->get('/certificados', [CertificadoController::class, 'index']);
 $router->get('/certificados/buscar', [CertificadoController::class, 'buscar']);

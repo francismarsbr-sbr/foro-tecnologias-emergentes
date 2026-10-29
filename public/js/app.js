@@ -66,6 +66,7 @@
     const fecha = form.fecha_nacimiento.value;
     const correo = form.correo.value.trim().toLowerCase();
     const telefono = soloDigitos(form.telefono.value, 15);
+    const viene = String(form.viene_institucion?.value || "").toLowerCase();
 
     form.cedula.value = cedula;
     form.nombre.value = nombre;
@@ -104,7 +105,48 @@
       ok = false;
     }
 
+    if (viene === "si" || viene === "sí") {
+      const tipo = String(form.institution_type?.value || "");
+      const instNombre = String(form.institution_name?.value || "").trim();
+      if (!["universidad", "empresa", "otra"].includes(tipo)) {
+        setError(form.institution_type, "Indique si viene de universidad, empresa u otra institución.");
+        ok = false;
+      }
+      if (instNombre.length < 2) {
+        setError(form.institution_name, "Indique la universidad, empresa o institución de la que viene.");
+        ok = false;
+      }
+    }
+
     return ok;
+  }
+
+  function toggleInstitucion(form) {
+    const viene = String(form.viene_institucion?.value || "").toLowerCase();
+    const show = viene === "si" || viene === "sí";
+    document.querySelectorAll(".inst-extra").forEach((el) => {
+      el.classList.toggle("d-none", !show);
+    });
+    if (!show && form.institution_name) {
+      form.institution_name.value = "";
+      if (form.institution_type) form.institution_type.value = "";
+    }
+  }
+
+  function openSuccessModal(message) {
+    const modal = document.getElementById("modal-registro-exito");
+    const slot = document.getElementById("modal-exito-mensaje");
+    if (!modal) return;
+    if (slot && message) slot.textContent = message;
+    modal.hidden = false;
+    modal.classList.add("is-open");
+  }
+
+  function closeSuccessModal() {
+    const modal = document.getElementById("modal-registro-exito");
+    if (!modal) return;
+    modal.classList.remove("is-open");
+    modal.hidden = true;
   }
 
   function initRegistro() {
@@ -136,6 +178,15 @@
     fecha.addEventListener("change", syncEdad);
     fecha.addEventListener("input", syncEdad);
     syncEdad();
+
+    if (form.viene_institucion) {
+      form.viene_institucion.addEventListener("change", () => toggleInstitucion(form));
+      toggleInstitucion(form);
+    }
+
+    document.querySelectorAll("[data-close-modal]").forEach((el) => {
+      el.addEventListener("click", closeSuccessModal);
+    });
 
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
@@ -173,10 +224,12 @@
           return;
         }
 
-        showAlert(alerta, data.mensaje, "success");
         form.reset();
         edadInput.value = "";
+        toggleInstitucion(form);
         clearErrors(form);
+        if (alerta) alerta.classList.add("d-none");
+        openSuccessModal(data.mensaje);
       } catch (err) {
         showAlert(alerta, "Error de red. Intente nuevamente.", "error");
       } finally {
@@ -203,6 +256,8 @@
     if (!tabla || !tbody || !csrf) return;
 
     let asistenciaHabilitada = tabla.dataset.asistencia === "1";
+    let filtroTipo = "todos";
+    let pendingDeleteId = null;
 
     const mostrarToast = (msg, isError = false) => {
       if (!toast) return;
@@ -213,15 +268,23 @@
       mostrarToast._t = setTimeout(() => toast.classList.remove("is-visible"), 2800);
     };
 
+    const labelTipo = (tipo) => {
+      if (tipo === "universidad") return "Universidad";
+      if (tipo === "empresa") return "Empresa";
+      if (tipo === "otra") return "Otra institución";
+      return "No indicó";
+    };
+
     const aplicarFiltro = () => {
-      if (!buscador) return;
-      const q = buscador.value.trim().toLowerCase();
+      const q = buscador ? buscador.value.trim().toLowerCase() : "";
       tbody.querySelectorAll("tr").forEach((row) => {
         if (row.classList.contains("empty-row")) return;
         const cedula = row.dataset.cedula || "";
         const apellido = row.dataset.apellido || "";
-        const match = !q || cedula.includes(q) || apellido.includes(q);
-        row.classList.toggle("is-hidden", !match);
+        const tipo = row.dataset.tipo || "no_indico";
+        const matchTexto = !q || cedula.includes(q) || apellido.includes(q);
+        const matchTipo = filtroTipo === "todos" || tipo === filtroTipo;
+        row.classList.toggle("is-hidden", !(matchTexto && matchTipo));
       });
     };
 
@@ -233,8 +296,18 @@
       return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
     };
 
+    const celdaInstitucion = (e) => {
+      const tipo = String(e.institution_type || "no_indico");
+      const nombreInst = escapeHtml(e.institution_name || "No indicó institución");
+      return `<span class="badge text-bg-light border">${escapeHtml(labelTipo(tipo))}</span>
+              <div class="small text-muted">${nombreInst}</div>`;
+    };
+
+    const botonEliminar = (e, nombre, apellido) =>
+      `<button type="button" class="btn btn-sm btn-outline-danger btn-eliminar" data-id="${e.id}" data-nombre="${nombre} ${apellido}">Eliminar</button>`;
+
     const renderFilas = (estudiantes) => {
-      const cols = asistenciaHabilitada ? 7 : 6;
+      const cols = asistenciaHabilitada ? 9 : 8;
       if (!estudiantes.length) {
         tbody.innerHTML = `<tr class="empty-row"><td colspan="${cols}">No hay participantes registrados aún.</td></tr>`;
         return;
@@ -249,6 +322,9 @@
           const telefono = escapeHtml(e.telefono);
           const cedulaKey = String(e.cedula).toLowerCase();
           const apellidoKey = String(e.apellido).toLowerCase();
+          const tipo = escapeHtml(String(e.institution_type || "no_indico"));
+          const inst = celdaInstitucion(e);
+          const eliminar = botonEliminar(e, nombre, apellido);
 
           if (asistenciaHabilitada) {
             const cert = e.asistio
@@ -262,16 +338,20 @@
                   <option value="0" selected>No</option>
                   <option value="1">Sí</option>
                 </select>`;
-            return `<tr data-id="${e.id}" data-cedula="${escapeHtml(cedulaKey)}" data-apellido="${escapeHtml(apellidoKey)}">
+            return `<tr data-id="${e.id}" data-cedula="${escapeHtml(cedulaKey)}" data-apellido="${escapeHtml(apellidoKey)}" data-tipo="${tipo}">
               <td>${cedula}</td><td>${apellido}</td><td>${nombre}</td><td>${correo}</td><td>${telefono}</td>
+              <td>${inst}</td>
               <td>${selectHtml}</td>
               <td class="cell-cert">${cert}</td>
+              <td>${eliminar}</td>
             </tr>`;
           }
 
-          return `<tr data-id="${e.id}" data-cedula="${escapeHtml(cedulaKey)}" data-apellido="${escapeHtml(apellidoKey)}">
+          return `<tr data-id="${e.id}" data-cedula="${escapeHtml(cedulaKey)}" data-apellido="${escapeHtml(apellidoKey)}" data-tipo="${tipo}">
             <td>${cedula}</td><td>${apellido}</td><td>${nombre}</td><td>${correo}</td><td>${telefono}</td>
+            <td>${inst}</td>
             <td>${escapeHtml(formatFecha(e.fecha_registro))}</td>
+            <td>${eliminar}</td>
           </tr>`;
         })
         .join("");
@@ -320,6 +400,90 @@
 
     if (buscador) {
       buscador.addEventListener("input", aplicarFiltro);
+    }
+
+    document.querySelectorAll(".filtro-tipo").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        filtroTipo = btn.dataset.tipo || "todos";
+        document.querySelectorAll(".filtro-tipo").forEach((b) => {
+          const active = b === btn;
+          b.classList.toggle("is-active", active);
+          b.classList.toggle("btn-primary", active);
+          b.classList.toggle("btn-outline-primary", !active);
+        });
+        aplicarFiltro();
+      });
+    });
+
+    const modalEliminar = document.getElementById("modal-eliminar");
+    const textoEliminar = document.getElementById("modal-eliminar-texto");
+    const btnConfirmarEliminar = document.getElementById("btn-confirmar-eliminar");
+
+    const openDeleteModal = (id, nombre) => {
+      pendingDeleteId = id;
+      if (textoEliminar) {
+        textoEliminar.textContent = `¿Seguro que desea eliminar a ${nombre}? Esta acción no se puede deshacer.`;
+      }
+      if (modalEliminar) {
+        modalEliminar.hidden = false;
+        modalEliminar.classList.add("is-open");
+      }
+    };
+
+    const closeDeleteModal = () => {
+      pendingDeleteId = null;
+      if (modalEliminar) {
+        modalEliminar.classList.remove("is-open");
+        modalEliminar.hidden = true;
+      }
+    };
+
+    tbody.addEventListener("click", (event) => {
+      const btn = event.target instanceof Element ? event.target.closest(".btn-eliminar") : null;
+      if (!btn) return;
+      openDeleteModal(btn.dataset.id, btn.dataset.nombre || "este asistente");
+    });
+
+    document.querySelectorAll("[data-close-confirm]").forEach((el) => {
+      el.addEventListener("click", closeDeleteModal);
+    });
+
+    if (btnConfirmarEliminar) {
+      btnConfirmarEliminar.addEventListener("click", async () => {
+        const id = pendingDeleteId;
+        if (!id) return;
+        btnConfirmarEliminar.disabled = true;
+        try {
+          const response = await fetch("/logistica/eliminar", {
+            method: "POST",
+            headers: {
+              Accept: "application/json",
+              "Content-Type": "application/json",
+              "X-Requested-With": "XMLHttpRequest",
+            },
+            body: JSON.stringify({ id: Number(id), _csrf: csrf.value }),
+          });
+          const data = await response.json().catch(() => null);
+          if (!response.ok || !data?.ok) {
+            mostrarToast(data?.mensaje || "No se pudo eliminar el registro.", true);
+            if (response.status === 401) window.location.href = "/login";
+            return;
+          }
+          closeDeleteModal();
+          mostrarToast(data.mensaje || "Registro eliminado.");
+          const row = tbody.querySelector(`tr[data-id="${id}"]`);
+          if (row) row.remove();
+          const totalEl = document.getElementById("stat-total");
+          if (totalEl) {
+            const n = tbody.querySelectorAll("tr:not(.empty-row)").length;
+            totalEl.textContent = String(n);
+          }
+        } catch (err) {
+          mostrarToast("Error de red al eliminar.", true);
+        } finally {
+          btnConfirmarEliminar.disabled = false;
+        }
+      });
     }
 
     tabla.addEventListener("change", async (event) => {

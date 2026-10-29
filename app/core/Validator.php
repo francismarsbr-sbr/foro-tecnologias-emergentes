@@ -94,7 +94,53 @@ final class Validator
             $this->data['telefono'] = $telefonoNorm;
         }
 
+        $this->validarInstitucion($input);
+
         return $this->errors === [];
+    }
+
+    /** @param array<string, mixed> $input */
+    private function validarInstitucion(array $input): void
+    {
+        $vieneRaw = strtolower($this->clean((string) ($input['viene_institucion'] ?? '')));
+        $tiposValidos = ['universidad', 'empresa', 'otra'];
+        $defaultNombre = 'No indicó institución';
+
+        if ($vieneRaw === '' || $vieneRaw === 'no') {
+            $this->data['institution_name'] = $defaultNombre;
+            $this->data['institution_type'] = 'no_indico';
+            return;
+        }
+
+        if (!in_array($vieneRaw, ['si', 'sí', 'yes', '1'], true)) {
+            $this->errors['viene_institucion'] = 'Seleccione Si o No.';
+            return;
+        }
+
+        $tipo = strtolower($this->clean((string) ($input['institution_type'] ?? '')));
+        if (!in_array($tipo, $tiposValidos, true)) {
+            $this->errors['institution_type'] = 'Indique si viene de universidad, empresa u otra institución.';
+        } else {
+            $this->data['institution_type'] = $tipo;
+        }
+
+        $nombre = $this->clean((string) ($input['institution_name'] ?? ''));
+        $nombre = preg_replace('/\s+/u', ' ', $nombre) ?? '';
+
+        if ($nombre === '' || mb_strlen($nombre) < 2) {
+            $this->errors['institution_name'] = 'Indique la universidad, empresa o institución de la que viene.';
+        } elseif (mb_strlen($nombre) > 150) {
+            $this->errors['institution_name'] = 'El nombre de la institución es demasiado largo.';
+        } else {
+            $this->data['institution_name'] = $nombre;
+        }
+
+        if (!isset($this->data['institution_name'])) {
+            $this->data['institution_name'] = $defaultNombre;
+        }
+        if (!isset($this->data['institution_type'])) {
+            $this->data['institution_type'] = 'no_indico';
+        }
     }
 
     /** @return array<string, string> */

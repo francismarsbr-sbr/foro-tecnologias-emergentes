@@ -4,7 +4,16 @@ $error = $error ?? null;
 $asistenciaHabilitada = !empty($asistenciaHabilitada);
 $total = count($estudiantes);
 $asistentes = count(array_filter($estudiantes, static fn($e) => filter_var($e['asistio'], FILTER_VALIDATE_BOOLEAN)));
-$colspan = $asistenciaHabilitada ? 7 : 6;
+$colspan = $asistenciaHabilitada ? 9 : 8;
+
+$labelTipo = static function (string $tipo): string {
+    return match ($tipo) {
+        'universidad' => 'Universidad',
+        'empresa'     => 'Empresa',
+        'otra'        => 'Otra institución',
+        default       => 'No indicó',
+    };
+};
 ?>
 <section class="section py-4">
     <div class="container">
@@ -48,6 +57,15 @@ $colspan = $asistenciaHabilitada ? 7 : 6;
             <p class="text-muted small mb-0">Actualización automática cada 15 s</p>
         </div>
 
+        <div class="filtro-procedencia mb-3" role="group" aria-label="Filtrar por procedencia">
+            <span class="filtro-label">Procedencia:</span>
+            <button type="button" class="btn btn-sm btn-primary filtro-tipo is-active" data-tipo="todos">Todos</button>
+            <button type="button" class="btn btn-sm btn-outline-primary filtro-tipo" data-tipo="universidad">Universidad</button>
+            <button type="button" class="btn btn-sm btn-outline-primary filtro-tipo" data-tipo="empresa">Empresa</button>
+            <button type="button" class="btn btn-sm btn-outline-primary filtro-tipo" data-tipo="otra">Otra Institución</button>
+            <button type="button" class="btn btn-sm btn-outline-primary filtro-tipo" data-tipo="no_indico">No indicó</button>
+        </div>
+
         <div class="table-responsive card shadow-sm border-0">
             <table class="table table-hover table-striped align-middle mb-0" id="tabla-asistencia"
                    data-asistencia="<?= $asistenciaHabilitada ? '1' : '0' ?>">
@@ -58,12 +76,14 @@ $colspan = $asistenciaHabilitada ? 7 : 6;
                         <th>Nombre</th>
                         <th>Correo</th>
                         <th>Teléfono</th>
+                        <th>Institución</th>
                         <?php if ($asistenciaHabilitada): ?>
                             <th>¿Vino?</th>
                             <th>Certificado</th>
                         <?php else: ?>
                             <th>Registro</th>
                         <?php endif; ?>
+                        <th>Acciones</th>
                     </tr>
                 </thead>
                 <tbody id="tbody-estudiantes">
@@ -79,15 +99,22 @@ $colspan = $asistenciaHabilitada ? 7 : 6;
                         $fechaReg = !empty($est['fecha_registro'])
                             ? date('d/m/Y H:i', strtotime((string) $est['fecha_registro']))
                             : '—';
+                        $tipoInst = (string) ($est['institution_type'] ?? 'no_indico');
+                        $nombreInst = (string) ($est['institution_name'] ?? 'No indicó institución');
                         ?>
                         <tr data-id="<?= $id ?>"
                             data-cedula="<?= htmlspecialchars(strtolower((string) $est['cedula']), ENT_QUOTES, 'UTF-8') ?>"
-                            data-apellido="<?= htmlspecialchars(mb_strtolower((string) $est['apellido'], 'UTF-8'), ENT_QUOTES, 'UTF-8') ?>">
+                            data-apellido="<?= htmlspecialchars(mb_strtolower((string) $est['apellido'], 'UTF-8'), ENT_QUOTES, 'UTF-8') ?>"
+                            data-tipo="<?= htmlspecialchars($tipoInst, ENT_QUOTES, 'UTF-8') ?>">
                             <td><?= htmlspecialchars((string) $est['cedula'], ENT_QUOTES, 'UTF-8') ?></td>
                             <td><?= htmlspecialchars((string) $est['apellido'], ENT_QUOTES, 'UTF-8') ?></td>
                             <td><?= htmlspecialchars((string) $est['nombre'], ENT_QUOTES, 'UTF-8') ?></td>
                             <td><?= htmlspecialchars((string) $est['correo'], ENT_QUOTES, 'UTF-8') ?></td>
                             <td><?= htmlspecialchars((string) $est['telefono'], ENT_QUOTES, 'UTF-8') ?></td>
+                            <td>
+                                <span class="badge text-bg-light border"><?= htmlspecialchars($labelTipo($tipoInst), ENT_QUOTES, 'UTF-8') ?></span>
+                                <div class="small text-muted"><?= htmlspecialchars($nombreInst, ENT_QUOTES, 'UTF-8') ?></div>
+                            </td>
                             <?php if ($asistenciaHabilitada): ?>
                                 <td>
                                     <?php if ($asistio): ?>
@@ -114,6 +141,13 @@ $colspan = $asistenciaHabilitada ? 7 : 6;
                             <?php else: ?>
                                 <td><?= htmlspecialchars($fechaReg, ENT_QUOTES, 'UTF-8') ?></td>
                             <?php endif; ?>
+                            <td>
+                                <button type="button" class="btn btn-sm btn-outline-danger btn-eliminar"
+                                        data-id="<?= $id ?>"
+                                        data-nombre="<?= htmlspecialchars((string) $est['nombre'] . ' ' . $est['apellido'], ENT_QUOTES, 'UTF-8') ?>">
+                                    Eliminar
+                                </button>
+                            </td>
                         </tr>
                     <?php endforeach; ?>
                 <?php endif; ?>
@@ -125,3 +159,15 @@ $colspan = $asistenciaHabilitada ? 7 : 6;
         <p id="toast-logistica" class="toast" role="status" aria-live="polite"></p>
     </div>
 </section>
+
+<div class="confirm-modal" id="modal-eliminar" hidden role="dialog" aria-modal="true" aria-labelledby="modal-eliminar-titulo">
+    <div class="confirm-modal-backdrop" data-close-confirm></div>
+    <div class="confirm-modal-card">
+        <h2 id="modal-eliminar-titulo">Eliminar registro</h2>
+        <p id="modal-eliminar-texto">¿Seguro que desea eliminar este asistente? Esta acción no se puede deshacer.</p>
+        <div class="confirm-modal-actions">
+            <button type="button" class="btn btn-ghost" data-close-confirm>Cancelar</button>
+            <button type="button" class="btn btn-danger" id="btn-confirmar-eliminar">Sí, eliminar</button>
+        </div>
+    </div>
+</div>

@@ -15,7 +15,7 @@ function err_class(array $errores, string $key): string {
     <div class="container" style="max-width: 760px;">
         <header class="section-head mb-4">
             <span class="badge rounded-pill text-bg-primary mb-2">06 de noviembre de 2026 · 8:00 AM</span>
-            <h1 class="h2 mb-1">Registro de participantes</h1>
+            <h1 class="h2 mb-1">Registro de Asistentes</h1>
             <p class="text-muted mb-0">II Foro de Tecnologías Emergentes: Inteligencia Artificial</p>
         </header>
 
@@ -85,6 +85,41 @@ function err_class(array $errores, string $key): string {
                            value="<?= old_val($old, 'telefono') ?>" autocomplete="tel" required>
                     <div class="invalid-feedback d-block field-error" data-error-for="telefono"><?= isset($errores['telefono']) ? htmlspecialchars($errores['telefono'], ENT_QUOTES, 'UTF-8') : '' ?></div>
                 </div>
+
+                <div class="col-12">
+                    <label class="form-label" for="viene_institucion">¿Vienes de otra universidad, empresa o institución?</label>
+                    <?php $vieneOld = old_val($old, 'viene_institucion'); ?>
+                    <select class="form-select<?= err_class($errores, 'viene_institucion') ?>" id="viene_institucion" name="viene_institucion">
+                        <option value="" <?= $vieneOld === '' ? 'selected' : '' ?>>Seleccione…</option>
+                        <option value="no" <?= $vieneOld === 'no' ? 'selected' : '' ?>>No</option>
+                        <option value="si" <?= in_array($vieneOld, ['si', 'sí'], true) ? 'selected' : '' ?>>Sí</option>
+                    </select>
+                    <div class="invalid-feedback d-block field-error" data-error-for="viene_institucion"><?= isset($errores['viene_institucion']) ? htmlspecialchars($errores['viene_institucion'], ENT_QUOTES, 'UTF-8') : '' ?></div>
+                </div>
+
+                <?php
+                $showInst = in_array($vieneOld, ['si', 'sí'], true);
+                $tipoOld = old_val($old, 'institution_type');
+                ?>
+                <div class="col-md-6 inst-extra<?= $showInst ? '' : ' d-none' ?>" id="wrap-tipo-institucion">
+                    <label class="form-label" for="institution_type">Tipo de procedencia</label>
+                    <select class="form-select<?= err_class($errores, 'institution_type') ?>" id="institution_type" name="institution_type">
+                        <option value="">Seleccione…</option>
+                        <option value="universidad" <?= $tipoOld === 'universidad' ? 'selected' : '' ?>>Universidad</option>
+                        <option value="empresa" <?= $tipoOld === 'empresa' ? 'selected' : '' ?>>Empresa</option>
+                        <option value="otra" <?= $tipoOld === 'otra' ? 'selected' : '' ?>>Otra institución</option>
+                    </select>
+                    <div class="invalid-feedback d-block field-error" data-error-for="institution_type"><?= isset($errores['institution_type']) ? htmlspecialchars($errores['institution_type'], ENT_QUOTES, 'UTF-8') : '' ?></div>
+                </div>
+
+                <div class="col-md-6 inst-extra<?= $showInst ? '' : ' d-none' ?>" id="wrap-nombre-institucion">
+                    <label class="form-label" for="institution_name">Indica la universidad, empresa o institución de la que vienes</label>
+                    <input type="text" class="form-control<?= err_class($errores, 'institution_name') ?>" id="institution_name"
+                           name="institution_name" maxlength="150"
+                           placeholder="Indica la universidad, empresa o institución de la que vienes"
+                           value="<?= old_val($old, 'institution_name') ?>">
+                    <div class="invalid-feedback d-block field-error" data-error-for="institution_name"><?= isset($errores['institution_name']) ? htmlspecialchars($errores['institution_name'], ENT_QUOTES, 'UTF-8') : '' ?></div>
+                </div>
             </div>
 
             <div class="d-flex justify-content-end mt-4">
@@ -93,3 +128,26 @@ function err_class(array $errores, string $key): string {
         </form>
     </div>
 </section>
+
+<div class="success-modal<?= ($tipo ?? '') === 'success' ? ' is-open' : '' ?>" id="modal-registro-exito" role="dialog"
+     aria-modal="true" aria-labelledby="modal-exito-titulo" <?= ($tipo ?? '') === 'success' ? '' : 'hidden' ?>>
+    <div class="success-modal-backdrop" data-close-modal></div>
+    <div class="success-modal-card">
+        <div class="success-check" aria-hidden="true">
+            <svg viewBox="0 0 72 72">
+                <circle class="success-check-ring" cx="36" cy="36" r="32"></circle>
+                <path class="success-check-mark" d="M20 37.5 L31.5 49 L53 24"></path>
+            </svg>
+        </div>
+        <p class="success-kicker">II Foro · Inteligencia Artificial</p>
+        <h2 id="modal-exito-titulo">¡Asistencia registrada!</h2>
+        <p class="success-text" id="modal-exito-mensaje">
+            <?= ($tipo ?? '') === 'success' && !empty($mensaje)
+                ? htmlspecialchars((string) $mensaje, ENT_QUOTES, 'UTF-8')
+                : 'Tu registro se guardó correctamente. ¡Te esperamos el 06 de noviembre de 2026!' ?>
+        </p>
+        <div class="success-actions">
+            <button type="button" class="btn btn-primary" data-close-modal>Cerrar</button>
+        </div>
+    </div>
+</div>

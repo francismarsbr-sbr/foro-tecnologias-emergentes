@@ -22,6 +22,10 @@ $brandHref = $isStaff ? '/logistica' : ($page === 'login' ? '/login' : '/registr
 <body class="page-<?= htmlspecialchars($page, ENT_QUOTES, 'UTF-8') ?> d-flex flex-column min-vh-100">
     <a class="skip-link visually-hidden-focusable" href="#contenido">Saltar al contenido</a>
 
+    <div class="cintillo-institucional" role="banner">
+        <img src="/img/cintillo.jpg" alt="Ministerio del Poder Popular para la Educación Universitaria — Universidad Politécnica Territorial de Yaracuy Arístides Bastidas">
+    </div>
+
     <nav class="navbar navbar-expand-lg navbar-foro sticky-top shadow-sm">
         <div class="container">
             <a class="navbar-brand d-flex align-items-center gap-2" href="<?= htmlspecialchars($brandHref, ENT_QUOTES, 'UTF-8') ?>">

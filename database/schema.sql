@@ -17,6 +17,8 @@ CREATE TABLE IF NOT EXISTS estudiantes (
     edad             INT          NOT NULL CHECK (edad >= 0 AND edad <= 120),
     correo           VARCHAR(150) NOT NULL,
     telefono         VARCHAR(15)  NOT NULL,
+    institution_name VARCHAR(150) NOT NULL DEFAULT 'No indicó institución',
+    institution_type VARCHAR(20)  NOT NULL DEFAULT 'no_indico',
     asistio          BOOLEAN      NOT NULL DEFAULT FALSE,
     fecha_registro   TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -43,10 +45,13 @@ CREATE TABLE IF NOT EXISTS estudiantes (
 CREATE INDEX IF NOT EXISTS idx_estudiantes_apellido ON estudiantes (apellido);
 CREATE INDEX IF NOT EXISTS idx_estudiantes_asistio ON estudiantes (asistio);
 CREATE INDEX IF NOT EXISTS idx_estudiantes_cedula ON estudiantes (cedula);
+CREATE INDEX IF NOT EXISTS idx_estudiantes_institution_type ON estudiantes (institution_type);
 
-COMMENT ON TABLE estudiantes IS 'Participantes registrados al II Foro de Tecnologías Emergentes';
+COMMENT ON TABLE estudiantes IS 'Asistentes registrados al II Foro de Tecnologías Emergentes';
 COMMENT ON COLUMN estudiantes.asistio IS 'TRUE cuando logística confirma asistencia el 06/11/2026';
 COMMENT ON COLUMN estudiantes.nombre IS 'Solo primer nombre';
 COMMENT ON COLUMN estudiantes.apellido IS 'Solo primer apellido';
+COMMENT ON COLUMN estudiantes.institution_name IS 'Universidad, empresa o institución de procedencia';
+COMMENT ON COLUMN estudiantes.institution_type IS 'universidad | empresa | otra | no_indico';
 
 COMMIT;

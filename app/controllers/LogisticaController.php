@@ -67,9 +67,11 @@ class LogisticaController extends Controller
                     'nombre'           => (string) $e['nombre'],
                     'apellido'         => (string) $e['apellido'],
                     'correo'           => (string) $e['correo'],
-                    'telefono'         => (string) $e['telefono'],
-                    'asistio'          => filter_var($e['asistio'], FILTER_VALIDATE_BOOLEAN),
-                    'fecha_registro'   => (string) ($e['fecha_registro'] ?? ''),
+                    'telefono'           => (string) $e['telefono'],
+                    'institution_name'   => (string) ($e['institution_name'] ?? 'No indicó institución'),
+                    'institution_type'   => (string) ($e['institution_type'] ?? 'no_indico'),
+                    'asistio'            => filter_var($e['asistio'], FILTER_VALIDATE_BOOLEAN),
+                    'fecha_registro'     => (string) ($e['fecha_registro'] ?? ''),
                 ];
             }, $rows);
 
@@ -175,6 +177,51 @@ class LogisticaController extends Controller
             ]);
         } catch (Throwable $e) {
             $this->json(['ok' => false, 'mensaje' => 'Error al actualizar la asistencia.'], 500);
+        }
+    }
+
+    public function eliminar(): void
+    {
+        $this->requireAuth();
+
+        if (!$this->isPost()) {
+            $this->json(['ok' => false, 'mensaje' => 'Método no permitido.'], 405);
+        }
+
+        $raw = file_get_contents('php://input') ?: '';
+        $jsonBody = json_decode($raw, true);
+        $payload = is_array($jsonBody) ? array_merge($_POST, $jsonBody) : $_POST;
+
+        $csrf = (string) ($payload['_csrf'] ?? '');
+        if (!$this->verifyCsrf($csrf)) {
+            $this->json(['ok' => false, 'mensaje' => 'Token de seguridad inválido.'], 403);
+        }
+
+        $id = filter_var($payload['id'] ?? null, FILTER_VALIDATE_INT);
+        if ($id === false || $id <= 0) {
+            $this->json(['ok' => false, 'mensaje' => 'Identificador de asistente inválido.'], 422);
+        }
+
+        try {
+            $modelo = new EstudianteModel();
+            $actual = $modelo->buscarPorId((int) $id);
+
+            if ($actual === null) {
+                $this->json(['ok' => false, 'mensaje' => 'El registro ya no existe.'], 404);
+            }
+
+            $ok = $modelo->eliminar((int) $id);
+            if (!$ok) {
+                $this->json(['ok' => false, 'mensaje' => 'No se pudo eliminar el registro.'], 500);
+            }
+
+            $this->json([
+                'ok'      => true,
+                'mensaje' => 'Registro eliminado correctamente.',
+                'id'      => (int) $id,
+            ]);
+        } catch (Throwable $e) {
+            $this->json(['ok' => false, 'mensaje' => 'Error al eliminar el registro.'], 500);
         }
     }
 }

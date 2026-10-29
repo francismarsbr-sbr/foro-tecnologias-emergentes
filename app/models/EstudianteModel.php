@@ -13,6 +13,8 @@ class EstudianteModel
 {
     private PDO $db;
 
+    public const DEFAULT_INSTITUTION = 'No indicó institución';
+
     public function __construct()
     {
         $this->db = Database::getInstance();
@@ -26,15 +28,28 @@ class EstudianteModel
      *   fecha_nacimiento: string,
      *   edad: int,
      *   correo: string,
-     *   telefono: string
+     *   telefono: string,
+     *   institution_name: string,
+     *   institution_type: string
      * } $data
      */
     public function crear(array $data): int
     {
+        $institutionName = trim((string) ($data['institution_name'] ?? ''));
+        if ($institutionName === '') {
+            $institutionName = self::DEFAULT_INSTITUTION;
+        }
+        $institutionType = strtolower(trim((string) ($data['institution_type'] ?? 'no_indico')));
+        if (!in_array($institutionType, ['universidad', 'empresa', 'otra', 'no_indico'], true)) {
+            $institutionType = 'no_indico';
+        }
+
         $sql = 'INSERT INTO estudiantes
-                (cedula, nombre, apellido, fecha_nacimiento, edad, correo, telefono)
+                (cedula, nombre, apellido, fecha_nacimiento, edad, correo, telefono,
+                 institution_name, institution_type)
                 VALUES
-                (:cedula, :nombre, :apellido, :fecha_nacimiento, :edad, :correo, :telefono)
+                (:cedula, :nombre, :apellido, :fecha_nacimiento, :edad, :correo, :telefono,
+                 :institution_name, :institution_type)
                 RETURNING id';
 
         try {
@@ -48,6 +63,8 @@ class EstudianteModel
             $stmt->bindValue(':edad', $data['edad'], PDO::PARAM_INT);
             $stmt->bindValue(':correo', $data['correo'], PDO::PARAM_STR);
             $stmt->bindValue(':telefono', $data['telefono'], PDO::PARAM_STR);
+            $stmt->bindValue(':institution_name', $institutionName, PDO::PARAM_STR);
+            $stmt->bindValue(':institution_type', $institutionType, PDO::PARAM_STR);
             $stmt->execute();
 
             $id = (int) $stmt->fetchColumn();
@@ -62,6 +79,7 @@ class EstudianteModel
                 throw new RuntimeException('Ya existe un registro con esa cédula.', 409, $e);
             }
 
+            error_log('Error al guardar estudiante: ' . $e->getMessage());
             throw new RuntimeException('Error al guardar el registro.', 500, $e);
         }
     }
@@ -80,7 +98,7 @@ class EstudianteModel
     {
         $stmt = $this->db->query(
             'SELECT id, cedula, nombre, apellido, fecha_nacimiento, edad, correo, telefono,
-                    asistio, fecha_registro
+                    institution_name, institution_type, asistio, fecha_registro
              FROM estudiantes
              ORDER BY apellido ASC, nombre ASC'
         );
@@ -92,7 +110,7 @@ class EstudianteModel
     {
         $stmt = $this->db->prepare(
             'SELECT id, cedula, nombre, apellido, fecha_nacimiento, edad, correo, telefono,
-                    asistio, fecha_registro
+                    institution_name, institution_type, asistio, fecha_registro
              FROM estudiantes
              WHERE id = :id
              LIMIT 1'
@@ -108,7 +126,7 @@ class EstudianteModel
     {
         $stmt = $this->db->prepare(
             'SELECT id, cedula, nombre, apellido, fecha_nacimiento, edad, correo, telefono,
-                    asistio, fecha_registro
+                    institution_name, institution_type, asistio, fecha_registro
              FROM estudiantes
              WHERE cedula = :cedula
              LIMIT 1'
@@ -118,5 +136,24 @@ class EstudianteModel
 
         $row = $stmt->fetch();
         return $row === false ? null : $row;
+    }
+
+    public function eliminar(int $id): bool
+    {
+        try {
+            Database::beginTransaction();
+
+            $stmt = $this->db->prepare('DELETE FROM estudiantes WHERE id = :id');
+            $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+            $stmt->execute();
+            $deleted = $stmt->rowCount() > 0;
+
+            Database::commit();
+
+            return $deleted;
+        } catch (PDOException $e) {
+            Database::rollBack();
+            throw new RuntimeException('No se pudo eliminar el registro.', 500, $e);
+        }
     }
 }

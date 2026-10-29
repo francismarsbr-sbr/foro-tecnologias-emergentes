@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict gUGJUXOzzZPyfpj4H15XLlEYJn6h9YsOIvVeUia2gNgqkde4lJ6bxn69vYWduxO
+\restrict 18a7kcVARtyqY0s6vS7abC6Fiehmd7zFgUEjc51BghwdVXXfSOSNA2YOeBhdcbN
 
 -- Dumped from database version 18.1
 -- Dumped by pg_dump version 18.1
@@ -38,6 +38,8 @@ CREATE TABLE public.estudiantes (
     telefono character varying(15) NOT NULL,
     asistio boolean DEFAULT false NOT NULL,
     fecha_registro timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    institution_name character varying(150) DEFAULT 'No indicó institución'::character varying NOT NULL,
+    institution_type character varying(20) DEFAULT 'no_indico'::character varying NOT NULL,
     CONSTRAINT chk_estudiantes_apellido CHECK ((((char_length(TRIM(BOTH FROM apellido)) >= 2) AND (char_length(TRIM(BOTH FROM apellido)) <= 30)) AND ((apellido)::text ~ '^[[:alpha:]''\-]+$'::text))),
     CONSTRAINT chk_estudiantes_cedula CHECK (((cedula)::text ~ '^[0-9]{6,10}$'::text)),
     CONSTRAINT chk_estudiantes_correo CHECK (((correo)::text ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'::text)),
@@ -92,9 +94,10 @@ ALTER TABLE ONLY public.estudiantes ALTER COLUMN id SET DEFAULT nextval('public.
 -- Data for Name: estudiantes; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-COPY public.estudiantes (id, cedula, nombre, apellido, fecha_nacimiento, edad, correo, telefono, asistio, fecha_registro) FROM stdin;
-1	28259274	Francismar	Sanblas	2000-08-15	26	francismar.sbr@gmail.com	04126778846	t	2026-10-19 20:01:00.654458
-2	17458428	Nerson	Gimenez	1981-03-19	45	nersongimenez@gmail.com	04121541653	t	2026-10-19 20:07:53.409489
+COPY public.estudiantes (id, cedula, nombre, apellido, fecha_nacimiento, edad, correo, telefono, asistio, fecha_registro, institution_name, institution_type) FROM stdin;
+1	28259274	Francismar	Sanblas	2000-08-15	26	francismar.sbr@gmail.com	04126778846	t	2026-10-19 20:01:00.654458	No indicó institución	no_indico
+3	29999111	Carla	Perez	1998-05-12	28	carla.perez.test@example.com	04145551234	f	2026-10-29 12:45:55.113864	No indicó institución	no_indico
+4	17458428	Nerson	Gimenez	1985-03-19	41	nersongimenez@gmail.com	04121541653	f	2026-10-29 13:19:20.04589	No indicó institución	no_indico
 \.
 
 
@@ -102,7 +105,7 @@ COPY public.estudiantes (id, cedula, nombre, apellido, fecha_nacimiento, edad, c
 -- Name: estudiantes_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.estudiantes_id_seq', 2, true);
+SELECT pg_catalog.setval('public.estudiantes_id_seq', 4, true);
 
 
 --
@@ -143,8 +146,15 @@ CREATE INDEX idx_estudiantes_cedula ON public.estudiantes USING btree (cedula);
 
 
 --
+-- Name: idx_estudiantes_institution_type; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_estudiantes_institution_type ON public.estudiantes USING btree (institution_type);
+
+
+--
 -- PostgreSQL database dump complete
 --
 
-\unrestrict gUGJUXOzzZPyfpj4H15XLlEYJn6h9YsOIvVeUia2gNgqkde4lJ6bxn69vYWduxO
+\unrestrict 18a7kcVARtyqY0s6vS7abC6Fiehmd7zFgUEjc51BghwdVXXfSOSNA2YOeBhdcbN
 

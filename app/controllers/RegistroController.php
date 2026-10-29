@@ -15,7 +15,7 @@ class RegistroController extends Controller
     public function index(): void
     {
         $this->view('registro/index', [
-            'title'   => 'Registro de Participantes',
+            'title'   => 'Registro de Asistentes',
             'page'    => 'registro',
             'csrf'    => $this->csrfToken(),
             'mensaje' => null,
@@ -41,12 +41,15 @@ class RegistroController extends Controller
 
         $validator = new Validator();
         $input = [
-            'cedula'           => (string) $this->input('cedula', ''),
-            'nombre'           => (string) $this->input('nombre', ''),
-            'apellido'         => (string) $this->input('apellido', ''),
-            'fecha_nacimiento' => (string) $this->input('fecha_nacimiento', ''),
-            'correo'           => (string) $this->input('correo', ''),
-            'telefono'         => (string) $this->input('telefono', ''),
+            'cedula'             => (string) $this->input('cedula', ''),
+            'nombre'             => (string) $this->input('nombre', ''),
+            'apellido'           => (string) $this->input('apellido', ''),
+            'fecha_nacimiento'   => (string) $this->input('fecha_nacimiento', ''),
+            'correo'             => (string) $this->input('correo', ''),
+            'telefono'           => (string) $this->input('telefono', ''),
+            'viene_institucion'  => (string) $this->input('viene_institucion', ''),
+            'institution_type'   => (string) $this->input('institution_type', ''),
+            'institution_name'   => (string) $this->input('institution_name', ''),
         ];
 
         if (!$validator->validateRegistro($input)) {
@@ -67,7 +70,7 @@ class RegistroController extends Controller
 
             $id = $modelo->crear($data);
 
-            $mensaje = 'Registro exitoso. Su número de inscripción es #' . $id . '.';
+            $mensaje = '¡Registro exitoso! Tu asistencia quedó confirmada. Número de inscripción #' . $id . '.';
 
             if ($this->isAjax()) {
                 $this->json([
@@ -78,7 +81,7 @@ class RegistroController extends Controller
             }
 
             $this->view('registro/index', [
-                'title'   => 'Registro de Participantes',
+                'title'   => 'Registro de Asistentes',
                 'page'    => 'registro',
                 'csrf'    => $this->csrfToken(),
                 'mensaje' => $mensaje,
@@ -106,7 +109,7 @@ class RegistroController extends Controller
         }
 
         $this->view('registro/index', [
-            'title'   => 'Registro de Participantes',
+            'title'   => 'Registro de Asistentes',
             'page'    => 'registro',
             'csrf'    => $this->csrfToken(),
             'mensaje' => 'Revise los campos del formulario.',
@@ -132,7 +135,7 @@ class RegistroController extends Controller
         }
 
         $this->view('registro/index', [
-            'title'   => 'Registro de Participantes',
+            'title'   => 'Registro de Asistentes',
             'page'    => 'registro',
             'csrf'    => $this->csrfToken(),
             'mensaje' => $mensaje,
